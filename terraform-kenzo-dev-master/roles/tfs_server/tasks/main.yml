@@ -1,0 +1,124 @@
+---
+- name: create Temp folder
+  win_file:
+    path: "{{temp_folder}}"
+    state: directory
+
+- name: download TFS installer
+  win_get_url:
+    url: "{{ tfs_installer.repo }}/{{ tfs_installer.name }}"
+    dest: "{{temp_folder}}"
+    force: no
+  tags: download
+
+- name: install TFS server
+  win_shell: "{{temp_folder}}\\{{ tfs_installer.name }} /full /quiet /log {{temp_folder}}\\log.txt"
+  tags: tfs-install
+  register: tfs_install
+
+- name: TFS install reboot
+  win_reboot:
+    post_reboot_delay: 180
+    reboot_timeout: 600
+  tags: tfs-reboot
+  register: tfs_reboot
+
+- name: download TFS 2017 v15.117.214 update 3
+  win_get_url:
+    url: "{{ tfs_installer.repo }}/{{ tfs_installer.update3 }}"
+    dest: "{{temp_folder}}"
+    force: no
+  tags: download-update
+
+- name: install TFS Server update 3
+  win_shell: "{{temp_folder}}\\{{tfs_installer.update3}} /full /silent /log {{temp_folder}}\\log.txt"
+  tags: run-update
+
+- name: configure TFS server
+  win_shell: |
+      $config = "C:\Program Files\Microsoft Team Foundation Server 15.0\Tools\TfsConfig.exe"
+      & $config unattend /configure /continue /type:NewServerAdvanced /inputs:SQLInstance={{ ansible_hostname }}\{{instance_name}}`;CollectionName=JIEE`;PublicUrl=http://{{ ansible_hostname }}:8080/tfs
+  tags: tfs-configure
+
+- name: delete TFS installer file
+  win_file:
+   path: "{{temp_folder}}\\{{ tfs_installer.name }}"
+   state: absent
+  tags: tfs-installer-delete
+
+- name: delete TFS update file
+  win_file:
+   path: "{{temp_folder}}\\{{tfs_installer.update3}}"
+   state: absent
+  tags: tfs-update3-delete
+
+#Copy over the certificate
+- name: Copy pfx certificate
+  win_copy:
+    src: "{{ certs_local_folder }}/{{ tfs_pfx_file }}"
+    dest: "{{temp_folder}}\\{{tfs_pfx_file}}"
+  tags: tfs-copy-pfx
+
+#Import cert to IIS
+- name: Import certificate be used by IIS
+  win_certificate_store:
+    path: "{{temp_folder}}\\{{tfs_pfx_file}}"
+    file_type: pkcs12
+    store_location: LocalMachine
+    key_storage: machine
+    key_exportable: no
+    state: present
+  tags: tfs-import-pfx
+
+#Bind website to the certificate using the thumbprint
+- name: Add a HTTPS binding
+  win_iis_webbinding:
+    name: Team Foundation Server
+    protocol: https
+    port: 443
+    ip: '*'
+    certificate_hash: "{{tfs_pfx_hash}}"
+    state: present
+  tags: iis-certificate-bind
+
+- name: Enable TFS server SSL
+  win_shell: |
+      $config = "C:\Program Files\Microsoft Team Foundation Server 15.0\Tools\TfsConfig.exe"
+      & $config settings /publicURL:https://{{tfs_ext_fqdn}}/tfs
+  tags: tfs-config-ssl-enable
+
+- name: delete TFS pfx file
+  win_file:
+   path: "{{temp_folder}}\\{{tfs_pfx_file}}"
+   state: absent
+  tags: tfs-delete-pfx
+
+# - name: Add client certificates to TFS server
+#   win_shell: |
+#       $config = "C:\Program Files\Microsoft Team Foundation Server 15.0\Tools\TfsConfig.exe"
+#       & $config certificates /machine /thumbprints:'{{tfs_pfx_hash}}' /noprompt
+#   tags: tfs-config-client-certificate-add
+
+#Copy over the certificate
+#Import cert to IIS
+# - name: Import certificate be used by IIS
+#   win_certificate_store:
+#     path: C:\Temp\cert.pfx
+#     file_type: pkcs12
+#     password: StrongPassword!
+#     store_location: LocalMachine
+#     key_storage: machine
+#     state: present
+#Bind website to the certificate
+# - name: Add a HTTPS binding
+#   win_iis_webbinding:
+#     name: Default Web Site
+#     protocol: https
+#     port: 443
+#     ip: '*'
+#     certificate_hash: B0D0FA8408FC67B230338FCA584D03792DA73F4C
+#     state: present
+#Update the TFS config to use the certificate
+# TfsConfig certificates /machine /thumbprints:aa bb cc dd ee /noprompt
+#Update the TFS application site
+# TfsConfig settings /publicURL:https://contoso.example.com/tfs
