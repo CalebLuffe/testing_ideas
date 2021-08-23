@@ -1,0 +1,47 @@
+---
+- hosts: primary_domain_controller
+  roles:
+  - primary_domain_controller
+  - common
+
+- hosts: replica_domain_controller
+  roles:
+  - replica_domain_controller
+  - common
+
+- hosts: jumpserver
+  pre_tasks:
+  - name: Install Google Chrome
+    win_chocolatey:
+      name: googlechrome
+      state: present
+  roles:
+  - ad_joined
+  - common
+
+- hosts: pullserver
+  roles:
+  - ad_joined
+  - common
+  - pullserver
+
+- import_playbook: tfs_servers.yml
+
+- import_playbook: rdgservers.yml
+
+- hosts: file_servers
+  roles:
+  - ad_joined
+  - common
+  - fileserver
+
+- import_playbook: databaseservers.yml
+
+- import_playbook: webservers.yml
+
+# without the -i see the ansible.cfg for default inventory used
+# ansible-playbook -i ./inventories/controlplane kenzo-playbook.yml
+# ansible-playbook -i ./inventories/development kenzo-playbook.yml
+# ansible-playbook -i ./inventories/development webservers.yml --limit us-east-2a
+# ansible-playbook site.yml --limit webservers
+# ansible-playbook webservers.yml

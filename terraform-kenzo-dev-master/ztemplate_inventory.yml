@@ -1,0 +1,53 @@
+---
+inventories:
+  controlplane:
+    hosts:
+
+inventories:
+  development:
+
+all:
+  hosts:
+    control.kenzo-dev.com:
+  children:
+    dc:
+      hosts:
+        dc[0:1].control.kenzo-dev.com:
+    jump:
+      hosts:
+        jump.control-kenzo-dev.com:
+    pull:
+      hosts:
+        pull.control-kenzo-dev.com:
+    controlplane:
+      children:
+        dc:
+        pull:
+        jump:
+
+all:
+  hosts:
+    dev-kenzo-dev.com:
+  children:
+    activedirectory:
+      hosts:
+        dc[0:1].control.kenzo-dev.com:
+    jump:
+      hosts:
+        jump.dev.kenzo-dev.com:
+    pull:
+      hosts:
+        pull.dev.kenzo-dev.com:
+    web:
+      hosts:
+        www.dev.kenzo-dev.com:
+    database:
+      hosts:
+        db[01:02].dev.kenzo-dev.com:
+    development:
+      children:
+        activedirectory:
+        pull:
+        jump:
+        web:
+        database:

@@ -1,0 +1,55 @@
+---
+- hosts: tfs_servers
+  pre_tasks:
+  - name: Get disk facts
+    win_disk_facts:
+
+  - name: Initialize Disk
+    win_shell: "Initialize-Disk -Number 1 -PartitionStyle MBR"
+    when: ansible_disks[1].partition_count == 0
+
+  - name: Create a partition with drive letter D and max size
+    win_partition:
+      disk_number: 1
+      partition_size: -1
+      drive_letter: D
+    when: ansible_disks[1].partition_count == 0
+
+  - name: Full format the newly created partition as NTFS and label it
+    win_format:
+      drive_letter: D
+      file_system: NTFS
+      new_label: TFS_SQL
+      full: false
+    when: ansible_disks[1].partition_count == 0
+
+  - name: Initialize Disk
+    win_shell: "Initialize-Disk -Number 2 -PartitionStyle MBR"
+    when: ansible_disks[2].partition_count == 0
+
+  - name: Create a partition with drive letter F and max size
+    win_partition:
+      disk_number: 2
+      partition_size: -1
+      drive_letter: F
+    when: ansible_disks[2].partition_count == 0
+
+  - name: Full format the newly created partition as NTFS and label it
+    win_format:
+      drive_letter: F
+      file_system: NTFS
+      new_label: Share
+      full: false
+    when: ansible_disks[2].partition_count == 0
+
+  roles:
+  - ad_joined
+  - common
+  - webserver
+  - sqlserver
+  - tfs_server
+
+#TODO get the localhost meta mof to setup LCM from a kenzo location
+# "New-Item -Path 'C:\\DSCSMB' -Type directory -Force",
+# "Copy-Item –Path '\\\\kenzoserver\\Software\\kenzo\\DSCSMB\\localhost.meta.mof' –Destination 'C:\\DSCSMB\\'",
+# "Set-DscLocalConfigurationManager -Verbose -ComputerName localhost –Path 'C:\\DSCSMB\\'",
