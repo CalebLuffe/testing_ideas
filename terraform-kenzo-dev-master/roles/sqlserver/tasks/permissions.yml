@@ -1,0 +1,108 @@
+---
+- name: configure MSSQL Login for Admins
+  win_dsc:
+    resource_name: SqlServerLogin
+    Ensure: Present
+    Name: "{{ item }}"
+    LoginType: WindowsGroup
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.sysadmins | flatten(1) }}"
+  when: outer_item.sysadmins is defined
+
+- name: configure MSSQL Logins SPS Users
+  win_dsc:
+    resource_name: SqlServerLogin
+    Ensure: Present
+    Name: "{{ item }}"
+    LoginType: WindowsGroup
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.sqlusers | flatten(1)  }}"
+  when: outer_item.sqlusers is defined
+
+- name: configure MSSQL Login for Setup User
+  win_dsc:
+    resource_name: SqlServerLogin
+    Ensure: Present
+    Name: "{{ item }}"
+    LoginType: WindowsGroup
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.setupadmins | flatten(1)  }}"
+  when: outer_item.setupadmins is defined
+
+- name: configure Admin MSSQL Server Role
+  win_dsc:
+    resource_name: SqlServerRole
+    Ensure: Present
+    ServerRoleName: sysadmin
+    MembersToInclude: "{{ item }}"
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.sysadmins | flatten(1)  }}"
+  when: outer_item.sysadmins is defined
+
+- name: configure Setup User MSSQL Server Role
+  win_dsc:
+    resource_name: SqlServerRole
+    Ensure: Present
+    ServerRoleName: securityadmin
+    MembersToInclude: "{{ item }}"
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.setupadmins | flatten(1)  }}"
+  when: outer_item.setupadmins is defined
+
+- name: configure Setup User MSSQL Server Role
+  win_dsc:
+    resource_name: SqlServerRole
+    Ensure: Present
+    ServerRoleName: dbcreator
+    MembersToInclude: "{{ item }}"
+    ServerName: .
+    InstanceName: "{{ outer_item.instance_name }}"
+  loop: "{{ outer_item.setupadmins | flatten(1)  }}"
+  when: outer_item.setupadmins is defined
+
+# - name: configure SPS DB Roles for Admins
+#   win_dsc:
+#     resource_name: SqlDatabaseRole
+#     ServerName: .
+#     InstanceName: "{{ outer_item.instance_name }}"
+#     Database: "{{ item.0 }}"
+#     Name: db_owner
+#     MembersToInclude: "{{ item.1 }}"
+#     Ensure: Present
+#   loop: "{{ outer_item.databases|product(outer_item.sysadmins)|list }}"
+#   when: outer_item.databases is defined and outer_item.sysadmins is defined
+
+# - name: configure SPS DB Access for Admins
+#   win_dsc:
+#     resource_name: SqlDatabasePermission
+#     ServerName: .
+#     InstanceName: "{{ outer_item.instance_name }}"
+#     Database: "{{ item.0 }}"
+#     Name: "{{ item.1 }}"
+#     PermissionState: Grant
+#     Permissions: Connect, Update, Delete, Select
+#     Ensure: Present
+#   with_nested:
+#     - "{{ outer_item.databases }}"
+#     - "{{ outer_item.sysadmins }}"
+#   when: outer_item.databases is defined and outer_item.sysadmins is defined
+
+# - name: configure SPS DB Access for SPS/SQL Users
+#   win_dsc:
+#     resource_name: SqlDatabasePermission
+#     ServerName: .
+#     InstanceName: "{{ outer_item.instance_name }}"
+#     Database: "{{ item.0 }}"
+#     Name: "{{ item.1 }}"
+#     PermissionState: Grant
+#     Permissions: Connect, Update, Select
+#     Ensure: Present
+#   with_nested:
+#     - "{{ outer_item.databases }}"
+#     - "{{ outer_item.sqlusers }}"
+#   when: outer_item.databases is defined and outer_item.spssqlusers is defined
