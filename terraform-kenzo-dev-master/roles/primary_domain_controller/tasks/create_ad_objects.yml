@@ -1,0 +1,21 @@
+# CREATE AD OBJECTS
+# - name: Create OU Structure
+#   win_shell: C:\scripts\create_ou_structure.ps1 -pathofcsvfile C:\scripts\create_ou.csv -domainName {{domain}}
+#   register: init_ou_structure_result
+
+# - name: Collect OU Structure result
+#   debug:
+#     msg: "{{ init_ou_structure_result }}"
+
+- name: Unzip GPO file
+  win_unzip:
+    src: "{{ scripts_folder }}\\RemoteDesktopUsersGPO.zip"
+    dest: "{{ scripts_folder }}"
+
+- name: Run script to import gpo for remote user access
+  win_shell: "{{ scripts_folder }}\\import_gpo.ps1 -DCPath '{{dcpath}}' -SecurityGroups 'Domain Users' -GpoFolder '{{ scripts_folder }}'"
+  register: init_import_result
+
+- name: Collect Import Structure result
+  debug:
+    msg: "{{ init_import_result }}"

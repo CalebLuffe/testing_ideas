@@ -1,0 +1,103 @@
+---
+
+- name: set hostname
+  win_hostname:
+    name: "{{ inventory_hostname_short }}"
+  register: res
+
+- name: reboot server after change to hostname
+  win_reboot:
+    msg: "Changing hostname. Rebooting..."
+    pre_reboot_delay: 15
+    reboot_timeout: 600
+    post_reboot_delay: 120
+  when: res.reboot_required
+
+- name: install ad
+  win_domain:
+    dns_domain_name: "{{ domain }}"
+    domain_netbios_name: "{{ netbios_domain }}"
+    safe_mode_password: "{{ domain_safemode_password }}"
+  register: ad
+
+- name: reboot server
+  win_reboot:
+    msg: "Installing AD. Rebooting..."
+    pre_reboot_delay: 15
+    reboot_timeout: 600
+    post_reboot_delay: 420
+  when: ad.changed
+
+- name: Install AD client tools
+  win_feature:
+    name:
+      - RSAT-AD-Tools
+    state: present
+
+- name: Install required powershell modules
+  win_psmodule: name={{item}} state=present repository=PSGallery
+  with_items:
+    - ActiveDirectoryDsc
+
+- name: Setup organizational units
+  win_dsc:
+    resource_name: ADOrganizationalUnit
+    Name: "{{ item.name }}"
+    Path: "{{ item.path }}"
+    Description: "{{ item.description }}"
+    Ensure: "{{ item.ensure }}"
+  loop: "{{ domain_ou_list }}"
+
+- name: Setup security groups
+  win_domain_group:
+    name: "{{ item.name }}"
+    scope: "{{ item.scope }}"
+    path: "{{ item.path }}"
+    state: "{{ item.state }}"
+  loop: "{{ domain_group_list }}"
+
+- name: Setup domain admins
+  win_domain_user:
+    name: "{{ item.username }}"
+    password: "{{ domain_admin_password }}"
+    state: "{{ item.state }}"
+    groups: "{{ item.group }}"
+  loop: "{{ domain_admins }}"
+
+- name: Setup domain users
+  win_domain_user:
+    name: "{{ item.username }}"
+    description: "{{ item.description }}"
+    password: "{{ domain_user_password }}"
+    state: "{{ item.state }}"
+    path: ou=Development,{{ dcpath }}
+    groups: "{{ item.group }}"
+  loop: "{{ domain_users }}"
+
+- name: Setup rdg access
+  win_user_right:
+    name: SeInteractiveLogonRight
+    users:
+    - 'Domain Users'
+    action: set
+
+#Copy over CA bundles to the server
+
+#Import CA to Trusted Root Certification Authorities
+
+- name: Copy PDC scripts to server
+  win_copy:
+    src: "{{ role_path }}/files/"
+    dest: "{{ scripts_folder }}\\"
+
+- name: Copy template CSVs
+  template:
+    src: "{{item}}.j2"
+    dest: "{{ scripts_folder }}\\{{item}}"
+  with_items:
+    - create_ou.csv
+
+# Create AD objects on Primary DC
+- name: Create ad objects on primary DC
+  include_tasks: create_ad_objects.yml
+
