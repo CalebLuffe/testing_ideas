@@ -1,0 +1,37 @@
+#SQL Database configuration for JIEE Dev
+rl_mssql_install_ssms: true
+rl_mssql_iso_source:
+  - name: SQLServer2014SP3-FullSlipstream-x64-ENU.iso
+    repo: 'https://kenzo-data-shared.s3.us-east-2.amazonaws.com/sqlserver'
+
+rl_mssql_ssms_source:
+  - name: SSMS-Setup-ENU.exe
+    repo: 'https://kenzo-data-shared.s3.us-east-2.amazonaws.com/sqlserver'
+    product_id: 4A144470-B2E3-4614-8AAC-370A0C80C919
+    arguments: /install /passive /norestart
+
+instance_name: KENZODEV
+rl_mssql_instances:
+  - instance_name: "{{ instance_name }}"
+    features: SQLENGINE
+    instance_collation: SQL_Latin1_General_CP1_CI_AS
+    sysadmins:
+      - "{{ inventory_hostname_short }}\\{{ ansible_user }}"
+      - "{{ netbios_domain }}\\Domain Admins"
+    sqlusers:
+      - "{{ inventory_hostname_short }}\\{{ ansible_user }}"
+      - "{{ netbios_domain }}\\Domain Users"
+    setupadmins:
+      - "{{ inventory_hostname_short }}\\{{ ansible_user }}"
+      - "{{ netbios_domain }}\\Domain Admins"
+    svcaccount: "{{ inventory_hostname_short }}\\{{ ansible_user }}"
+    svcpassword: "{{ ansible_password }}"
+    instance_dir: C:\Program Files\Microsoft SQL Server
+    installdb_path: 'D:\{{ instance_name }}\Data'
+    userldb_path: 'D:\{{ instance_name }}\Ldb'
+    userdblog_path: 'D:\{{ instance_name }}\Log'
+    tempdb_path: 'D:\{{ instance_name }}\Temp'
+    tempdblog_path: 'D:\{{ instance_name }}\TempLog'
+    backup_path: 'D:\{{ instance_name }}\Backup'
+    databases:
+      - "{{ instance_name }}"

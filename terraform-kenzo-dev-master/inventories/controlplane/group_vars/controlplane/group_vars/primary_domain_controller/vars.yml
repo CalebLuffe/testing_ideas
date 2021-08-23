@@ -1,0 +1,57 @@
+kenzo:
+  - name: Development
+    path: "{{ dcpath }}"
+    description: "Development"
+    ensure: present
+
+domain_group_list:
+  - name: Developers
+    scope: global
+    path: ou=Development,{{ dcpath }}
+    state: present
+
+domain_admins:
+  - username: kenzo
+    description: test account
+    group:
+      - 'Domain Admins'
+    state: present
+
+domain_users:
+  - username: alice
+    description: test account
+    group:
+      - Developers
+    state: present
+  - username: tyson
+    description: test account
+    group:
+      - Developers
+    state: present
+  - username: chun.li
+    description: kenzo Developer
+    group:
+      - Developers
+    state: present
+  - username: no.wai
+    description: kenzo Developer
+    group:
+      - Developers
+    state: present
+  - username: alex.alex
+    description: kenzo DBA
+    group:
+      - Developers
+    state: present
+  - username: ken.myrick
+    description: kenzo Admin
+    group:
+      - Developers
+    state: present
+
+
+#TODO automate the GPO the creates restricted group to Remote Desktop Users
+#      - 'RemoteUsers'
+# https://www.enterprisedaddy.com/2015/02/add-domain-users-local-remote-desktop-users-group-policy/
+# https://docs.microsoft.com/en-us/powershell/scripting/dsc/quickstarts/gpo-quickstart?view=powershell-7
+
