@@ -1,0 +1,13 @@
+---
+- name: deploy secrets
+  hosts: localhost
+  tasks:
+  - name: print secrets
+    debug: 
+      msg:
+        - "ansible_password {{ ansible_password }}"
+        - "domain_admin_password {{ domain_admin_password }}"
+        - "domain_safemode_password {{ domain_safemode_password }}"
+        - "domain_user_password {{ domain_user_password }}"
+
+
