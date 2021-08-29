@@ -1,7 +1,0 @@
----
-# vars file for rdgserver
-certs_local_folder: "~/vault/certs"
-scripts_folder: "C:\\scripts"
-
-rdg_ext_fqdn:  "rdg.{{ domain }}"
-rdg_pfx_file: "rdg.pfx"
