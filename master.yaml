@@ -171,7 +171,6 @@ coreos:
       content: |
         [Unit]
         Description=Kubernetes Registration Service
-        Documentation=https://github.com/kelseyhightower/kube-register
         Requires=kube-apiserver.service
         After=kube-apiserver.service
         Requires=fleet.service
